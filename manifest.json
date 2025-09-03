@@ -1,0 +1,107 @@
+{
+  "manifest_version": 3,
+  "name": "Reddit Context Helper",
+  "version": "1.0.0",
+  "description": "Find relevant Reddit discussions about any webpage or selected text. Get real insights from Reddit's community on what you're reading.",
+  
+  "author": "Your Name",
+  "homepage_url": "https://github.com/dexisback/redditHelper",
+  
+  "permissions": [
+    "activeTab",
+    "storage"
+  ],
+  
+  "host_permissions": [
+    "https://www.reddit.com/*",
+    "https://old.reddit.com/*",
+    "https://api.reddit.com/*"
+  ],
+  
+  "action": {
+    "default_popup": "popup.html",
+    "default_title": "Find Reddit discussions about this page",
+    "default_icon": {
+      "16": "takumi.jpg",
+      "32": "takumi.jpg",
+      "48": "takumi.jpg",
+      "128": "takumi.jpg"
+    }
+  },
+  
+  "icons": {
+    "16": "takumi.jpg",
+    "32": "takumi.jpg",
+    "48": "takumi.jpg",
+    "128": "takumi.jpg"
+  },
+  
+  "background": {
+    "service_worker": "background.js",
+    "type": "module"
+  },
+  
+  "content_scripts": [
+    {
+      "matches": [
+        "<all_urls>"
+      ],
+      "js": [
+        "content.js"
+      ],
+      "run_at": "document_idle",
+      "all_frames": false
+    }
+  ],
+  
+  "web_accessible_resources": [
+    {
+      "resources": [
+        "icons/*.png"
+      ],
+      "matches": [
+        "<all_urls>"
+      ]
+    }
+  ],
+  
+  "content_security_policy": {
+    "extension_pages": "script-src 'self'; object-src 'self'"
+  },
+  
+  "minimum_chrome_version": "88",
+  
+  "options_page": "options.html",
+  
+  "commands": {
+    "_execute_action": {
+      "suggested_key": {
+        "default": "Ctrl+Shift+R",
+        "mac": "Command+Shift+R"
+      },
+      "description": "Open Reddit Context Helper"
+    },
+    "search_selected_text": {
+      "suggested_key": {
+        "default": "Ctrl+Shift+S",
+        "mac": "Command+Shift+S"
+      },
+      "description": "Search Reddit for selected text"
+    }
+  },
+  
+  "omnibox": {
+    "keyword": "reddit"
+  },
+  
+  "optional_permissions": [
+    "tabs",
+    "history",
+    "bookmarks"
+  ],
+  
+  "optional_host_permissions": [
+    "https://*/*",
+    "http://*/*"
+  ]
+}

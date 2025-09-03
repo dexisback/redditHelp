@@ -1,0 +1,98 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Reddit Context Helper</title>
+  <link rel="stylesheet" href="popup.css">
+</head>
+<body>
+  <!-- Header with extension title -->
+  <header class="popup-header">
+    <div class="header-content">
+      <h1>🔍 Reddit Context</h1>
+      <div class="header-subtitle">Find discussions about this page</div>
+    </div>
+  </header>
+
+  <!-- Search mode indicator -->
+  <div id="search-mode" class="search-mode">
+    <div class="search-info">
+      <strong>Analyzing page...</strong>
+    </div>
+  </div>
+
+  <!-- Action buttons -->
+  <div class="action-buttons">
+    <button id="switch-mode" class="btn btn-secondary" style="display: none;">
+      🔄 Switch Mode
+    </button>
+    <button id="refresh-search" class="btn btn-primary" style="display: none;">
+      ↻ Refresh
+    </button>
+  </div>
+
+  <!-- Loading state -->
+  <div id="loading" class="loading-container" style="display: none;">
+    <div class="loading-spinner"></div>
+    <div class="loading-text">Searching Reddit...</div>
+    <div class="loading-subtitle">Finding relevant discussions</div>
+  </div>
+
+  <!-- Results container -->
+  <div id="results" class="results-container">
+    <!-- Results will be populated by popup.js -->
+  </div>
+
+  <!-- Error message -->
+  <div id="error" class="error-container" style="display: none;">
+    <div class="error-icon">⚠️</div>
+    <div class="error-message">No Reddit discussions found</div>
+    <div class="error-suggestion">Try selecting different text or check your connection</div>
+  </div>
+
+  <!-- Footer with tips -->
+  <footer class="popup-footer" style="display: none;">
+    <div class="tips">
+      <div class="tip">💡 <strong>Tip:</strong> Select text for specific searches</div>
+      <div class="tip">⌨️ Press <kbd>S</kbd> to switch modes, <kbd>R</kbd> to refresh</div>
+    </div>
+  </footer>
+
+  <!-- Empty state (when no data available) -->
+  <div id="empty-state" class="empty-state" style="display: none;">
+    <div class="empty-icon">📄</div>
+    <div class="empty-title">No content detected</div>
+    <div class="empty-message">
+      This page doesn't seem to have searchable content. Try:
+      <ul>
+        <li>Selecting some text on the page</li>
+        <li>Visiting a page with more content</li>
+        <li>Checking if the page has finished loading</li>
+      </ul>
+    </div>
+  </div>
+
+  <!-- Settings/Options (optional for future) -->
+  <div id="settings" class="settings-container" style="display: none;">
+    <div class="settings-item">
+      <label>
+        <input type="checkbox" id="show-nsfw"> Show NSFW content
+      </label>
+    </div>
+    <div class="settings-item">
+      <label>
+        Results per search:
+        <select id="results-limit">
+          <option value="5">5</option>
+          <option value="8" selected>8</option>
+          <option value="10">10</option>
+          <option value="15">15</option>
+        </select>
+      </label>
+    </div>
+  </div>
+
+  <script src="popup.js"></script>
+</body>
+</html>
