@@ -1,174 +1,90 @@
-// HINT: This file detects user interactions on websites
 
-// Listen for text selection
-document.addEventListener('mouseup', function() {
-  
-  // Get selected text
-  let selectedText = window.getSelection().toString().trim();
-  
-  // If user selected something
-  if (selectedText.length > 0) {
-    
-    // Store it for popup to use later
-    chrome.storage.local.set({ 
-      selectedText: selectedText,
-      hasSelection: true 
-    });
-    
-    // Optional: Show visual feedback
-    console.log("Saved selected text:", selectedText);
-  }
-});
 
-// Also get page information when page loads
-window.addEventListener('load', function() {
-  
-  // Extract page title
-  let pageTitle = document.title;
-  
-  // Extract meta description (if exists)
-  let metaDescription = "";
-  let metaTag = document.querySelector('meta[name="description"]');
-  if (metaTag) {
-    metaDescription = metaTag.content;
-  }
-  
-  // Clean up title (remove extra words, special chars)
-  let cleanTitle = cleanTextForSearch(pageTitle);
-  
-  // Store page context
-  chrome.storage.local.set({
-    pageTitle: cleanTitle,
-    pageUrl: window.location.href,
-    metaDescription: metaDescription
-  });
-});
 
-// Helper function to clean text for search
-function cleanTextForSearch(text) {
-  
-  // Step 1: Remove special characters and normalize
-  let cleanedText = text
-    .replace(/[^\w\s-]/gi, ' ')     // Remove special chars except hyphens
-    .replace(/\s+/g, ' ')           // Replace multiple spaces with single space
-    .toLowerCase()                   // Convert to lowercase
-    .trim();                        // Remove leading/trailing spaces
-  
-  // Step 2: Define common stop words to remove
-  let stopWords = [
-    'the', 'and', 'or', 'but', 'in', 'on', 'at', 'to', 'for', 'of', 'with',
-    'by', 'from', 'as', 'is', 'are', 'was', 'were', 'be', 'been', 'being',
-    'have', 'has', 'had', 'do', 'does', 'did', 'will', 'would', 'could',
-    'should', 'may', 'might', 'must', 'can', 'this', 'that', 'these', 'those',
-    'a', 'an', 'it', 'its', 'they', 'them', 'their', 'there', 'here',
-    'how', 'what', 'when', 'where', 'why', 'who', 'which'
-  ];
-  
-  // Step 3: Split into words and filter
-  let words = cleanedText.split(' ')
-    .filter(word => {
-      return word.length > 2 &&              // Keep words longer than 2 chars
-             !stopWords.includes(word) &&    // Remove stop words
-             !word.match(/^\d+$/);            // Remove pure numbers
-    });
-  
-  // Step 4: Limit to first 5 meaningful words
-  let finalWords = words.slice(0, 5);
-  
-  // Step 5: Return cleaned search query
-  return finalWords.join(' ');
-}
+//my own code:
+document.addEventListener("mouseup", selectFunction);
+//define the select function, what happens when the text is selected
 
-// Optional: Clear selection flag when user clicks elsewhere
-document.addEventListener('click', function() {
-  
-  // Small delay to check if there's still selection
-  setTimeout(() => {
-    let currentSelection = window.getSelection().toString().trim();
-    
-    if (currentSelection.length === 0) {
-      // No text selected anymore, clear the flag
-      chrome.storage.local.set({ 
-        hasSelection: false 
-      });
+function selectFunction(){
+    let selectedText=window.getSelection().toString().trim();
+    if(selectedText){
+        //store it in the chrome storage API;
+        chrome.storage.local.set({
+            selectedText: selectedText,
+            hasSelection: true //just a flag for checking
+        })
     }
-  }, 100);
-});
+    //and for a checking, we will print out something in the console
+    console.log(`The selected text is ${selectedText}`);
 
-// Optional: Handle page URL changes (for SPAs)
-let currentUrl = window.location.href;
-setInterval(() => {
-  
-  if (window.location.href !== currentUrl) {
-    currentUrl = window.location.href;
+}
+
+//now since humara model is hybrid one, it also sends the page data to the user, we have to first fetch and store the data of the page 
+window.addEventListener("load", pageInfoGatherer);
+
+
+function pageInfoGatherer(){
+    //gathers the metadata, the page title, and the url
+    let pageTitle=document.title; //the page title
+    let metaDescription; //definining metadescription
+    let metaTag=document.querySelector('meta[name="description"]')    //ig this fetches the metaTag of the page
+    if(metaTag){  //if metatag exists, then store it in the chrome storage API
+       metaDescription= metaTag.content; 
+    }
+}
+
+//time to clean up the title:
+let cleanedTitle=cleanupTitle(pageTitle)  //this is the cleanedTitle, cleaned up using a self made function =>cleanupTitle
+
+//since everything is done and set, now we store the things into the chrome storage API:
+chrome.storage.local.set({
+    pageTitle: pageTitle,
+    metaDescription: metaDescription,
+    pageUrl:window.location.href
+})
+
+
+//defining the function:
+function cleanupTitle(anything){
+   
+    let cleanedText=anything
+    .replace(/[^\w\s-]/gi,' ')
+    .replace(/\s+/g, ' ')
+    .toLowerCase()
+    .trim();
+
+    //define common stopwords to remove(taken from https://gist.github.com/sebleier/554280 thanks)
+    let commonStopWords=["i", "me", "my", "myself", "we", "our", "ours", "ourselves", "you", "your", "yours", "yourself", "yourselves", "he", "him", "his", "himself", "she", "her", "hers", "herself", "it", "its", "itself", "they", "them", "their", "theirs", "themselves", "what", "which", "who", "whom", "this", "that", "these", "those", "am", "is", "are", "was", "were", "be", "been", "being", "have", "has", "had", "having", "do", "does", "did", "doing", "a", "an", "the", "and", "but", "if", "or", "because", "as", "until", "while", "of", "at", "by", "for", "with", "about", "against", "between", "into", "through", "during", "before", "after", "above", "below", "to", "from", "up", "down", "in", "out", "on", "off", "over", "under", "again", "further", "then", "once", "here", "there", "when", "where", "why", "how", "all", "any", "both", "each", "few", "more", "most", "other", "some", "such", "no", "nor", "not", "only", "own", "same", "so", "than", "too", "very", "s", "t", "can", "will", "just", "don", "should", "now"]
     
-    // Page changed, update page info
-    let cleanTitle = cleanTextForSearch(document.title);
-    chrome.storage.local.set({
-      pageTitle: cleanTitle,
-      pageUrl: currentUrl,
-      hasSelection: false  // Reset selection on page change
+    //split the given sentence into different words, and check if that word is a commonStopWord, and filter it out
+    let usefulWords= cleanedText.split(' ').filter(item=>{
+        return item.length>2 && !commonStopWords.includes(word);  //this line we are removing all the words that are less than 2 characters of length, and any word that includes commonStopWords wali array me se kuch bhi
     });
-  }
-}, 1000);  // Check every second
 
+    //we will only give the first 6/7 words to the API, usse zyaada not needed i think
+    let finalWords=usefulWords.slice(0,6);
+    return finalWords.join(' '); //useful words was an array of letters sepearated together by a whitespace(words basically), we are joining them back to form a coherent sentence (string) to send out
 
-
-// More advanced text cleaning
-function advancedTextCleaning(text) {
-  
-  // Remove common website suffixes
-  let cleanedText = text
-    .replace(/\s*-\s*(YouTube|Google|Facebook|Twitter|Reddit).*$/i, '')
-    .replace(/\s*\|\s*.*$/, '')     // Remove everything after |
-    .replace(/\s*::\s*.*$/, '')     // Remove everything after ::
-    .replace(/^\[.*?\]\s*/, '');    // Remove [tags] at beginning
-  
-  return cleanTextForSearch(cleanedText);
 }
 
-// Extract keywords from URL if title is not useful
-function extractKeywordsFromUrl(url) {
-  
-  try {
-    let urlObj = new URL(url);
-    let pathname = urlObj.pathname;
-    
-    // Extract meaningful parts from URL path
-    let pathParts = pathname.split('/')
-      .filter(part => part.length > 2)     // Remove short parts
-      .filter(part => !part.match(/^\d+$/)) // Remove pure numbers
-      .map(part => part.replace(/-|_/g, ' ')) // Replace hyphens/underscores
-      .slice(0, 3);  // Take first 3 parts
-    
-    return pathParts.join(' ');
-    
-  } catch (error) {
-    return 'general discussion';
-  }
-}
 
-// Get text content from specific elements (for better context)
-function getPageContext() {
-  
-  // Try to get meaningful content from page
-  let contexts = [];
-  
-  // Check for article headlines
-  let h1 = document.querySelector('h1');
-  if (h1) contexts.push(h1.textContent);
-  
-  // Check for meta keywords
-  let metaKeywords = document.querySelector('meta[name="keywords"]');
-  if (metaKeywords) contexts.push(metaKeywords.content);
-  
-  // Get first paragraph text (if it's not too long)
-  let firstParagraph = document.querySelector('p');
-  if (firstParagraph && firstParagraph.textContent.length < 200) {
-    contexts.push(firstParagraph.textContent);
-  }
-  
-  // Combine and clean all contexts
-  let combinedContext = contexts.join(' ');
-  return cleanTextForSearch(combinedContext);
-}
+
+//url change detection for SPAs(sites like youtube vgrh does itm without reloading the page the URL changes)
+let currentUrl=window.location.href;
+setInterval(()=>{
+    if(window.location.href !== currentUrl){
+        currentUrl=window.location.href;
+    }
+
+    //since page has changed we also need to update the pageInfo
+    let cleanedTitle=cleanupTitle(pageTitle);
+    chrome.storage.local.set({
+        pageTitle: cleanedTitle,
+        pageUrl: currentUrl,
+        hasSelection: false
+    })
+}, 1000);  //we are doing this checking every second
+
+
+
+

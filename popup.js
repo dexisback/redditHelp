@@ -429,3 +429,18 @@ function addRefreshButton() {
     searchModeDiv.parentNode.insertBefore(refreshButton, searchModeDiv.nextSibling);
   }
 }
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
