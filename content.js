@@ -12,7 +12,7 @@ function selectFunction(){
         chrome.storage.local.set({
             selectedText: selectedText,
             hasSelection: true //just a flag for checking
-        })
+        })                        
     }
     //and for a checking, we will print out something in the console
     console.log(`The selected text is ${selectedText}`);
