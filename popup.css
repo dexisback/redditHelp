@@ -1,4 +1,5 @@
 /* HINT: Modern, responsive styling for the popup interface */
+@import url('https://fonts.googleapis.com/css2?family=Fredoka+One&family=Baloo+2&family=Chela+One&family=Luckiest+Guy&family=Bangers&family=Poppins:wght@400;600&family=Quicksand:wght@400;700&display=swap');
 
 /* CSS Variables for consistent theming */
 :root {
@@ -71,7 +72,7 @@ body {
 /* Scrollbar styling */
 ::-webkit-scrollbar {
   width: 6px;
-}
+};
 
 ::-webkit-scrollbar-track {
   background: var(--surface-color);
@@ -88,14 +89,17 @@ body {
 
 /* Header */
 .popup-header {
-  background: linear-gradient(135deg, var(--primary-color), var(--secondary-color));
-  color: white;
+  /* background: linear-gradient(135deg, var(--primary-color), var(--secondary-color)); */
+  background-image: url("newnewbackground.jpeg");
+  background-size: cover;
+  color: black;
   padding: var(--spacing-lg);
   text-align: center;
   position: sticky;
   top: 0;
   z-index: 10;
   box-shadow: var(--shadow-md);
+  font-family:"Quicksand", cursive;
 }
 
 .header-content h1 {

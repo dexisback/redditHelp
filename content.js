@@ -58,7 +58,7 @@ function cleanupTitle(anything){
     
     //split the given sentence into different words, and check if that word is a commonStopWord, and filter it out
     let usefulWords= cleanedText.split(' ').filter(item=>{
-        return item.length>2 && !commonStopWords.includes(word);  //this line we are removing all the words that are less than 2 characters of length, and any word that includes commonStopWords wali array me se kuch bhi
+        return item.length>2 && !commonStopWords.includes(item);  //this line we are removing all the words that are less than 2 characters of length, and any word that includes commonStopWords wali array me se kuch bhi
     });
 
     //we will only give the first 6/7 words to the API, usse zyaada not needed i think

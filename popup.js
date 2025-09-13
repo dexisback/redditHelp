@@ -1,8 +1,8 @@
 // === Backend logic (your code) ===
 
 let currentSearchMode = "auto";
-let searchQuery = "";
-let curretnData = {};
+let query = "";
+let currentData = {};
 let storedUrlLocally;
 
 // when DOM is loaded up
