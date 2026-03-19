@@ -1,0 +1,17 @@
+{
+	"folders": [
+		{
+			"path": "."
+		},
+		{
+			"path": "../test"
+		},
+		{
+			"path": "../backend"
+		},
+		{
+			"path": "../webDev_mega_folder"
+		}
+	],
+	"settings": {}
+}
