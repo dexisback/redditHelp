@@ -42,6 +42,43 @@
             </button>
         </div>
 
+        <!-- Filter bar — shown after first results load -->
+        <div id="filter-bar" class="filter-bar" style="display: none">
+            <div class="filter-group">
+                <button class="filter-btn active" data-sort="relevance">
+                    Relevance
+                </button>
+                <button class="filter-btn" data-sort="hot">Hot</button>
+                <button class="filter-btn" data-sort="top">Top</button>
+                <button class="filter-btn" data-sort="new">New</button>
+                <button class="filter-btn" data-sort="comments">
+                    Comments
+                </button>
+            </div>
+            <div
+                id="time-filter"
+                class="filter-group time-filter"
+                style="display: none"
+            >
+                <button class="filter-btn time-btn active" data-time="all">
+                    All time
+                </button>
+                <button class="filter-btn time-btn" data-time="year">
+                    Year
+                </button>
+                <button class="filter-btn time-btn" data-time="month">
+                    Month
+                </button>
+                <button class="filter-btn time-btn" data-time="week">
+                    Week
+                </button>
+                <button class="filter-btn time-btn" data-time="day">Day</button>
+                <button class="filter-btn time-btn" data-time="hour">
+                    Hour
+                </button>
+            </div>
+        </div>
+
         <!-- Loading state -->
         <div id="loading" class="loading-container" style="display: none">
             <div class="loading-spinner"></div>
