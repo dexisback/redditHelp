@@ -1,0 +1,13 @@
+{
+  "name": "reddit-context-helper",
+  "version": "1.0.0",
+  "description": "Find relevant Reddit discussions about any webpage or selected text.",
+  "scripts": {
+    "build": "tsc",
+    "watch": "tsc --watch"
+  },
+  "devDependencies": {
+    "@types/chrome": "^0.1.38",
+    "typescript": "^5.9.3"
+  }
+}
