@@ -18,6 +18,8 @@ interface StorageData {
 
 let currentSearchMode = "auto";
 let query = "";
+let currentSort = "relevance";
+let currentTimePeriod = "all";
 let currentData: StorageData = {};
 let storedUrlLocally: string | undefined;
 
@@ -40,59 +42,110 @@ window.addEventListener("DOMContentLoaded", function () {
       }
 
       updateSearchModeIndicator(query, currentSearchMode);
-      searchReddit(query);
+      searchReddit();
     },
   );
 
-  function searchReddit(q: string): void {
-    if (!q) {
-      loadingScreen(false);
-      showError("No search query available. Try selecting some text on the page.");
-      return;
-    }
+  // sort filter buttons
+  document
+    .querySelectorAll<HTMLElement>(".filter-btn[data-sort]")
+    .forEach((btn) => {
+      btn.addEventListener("click", function () {
+        currentSort = btn.dataset.sort ?? "relevance";
 
-    chrome.runtime.sendMessage(
-      {
-        action: "amaan_ka_sandesh_for_background_script",
-        query: q.trim(),
-        limit: 8,
-      },
-      function (response: { success: boolean; data?: RedditPost[]; error?: string }) {
-        loadingScreen(false);
+        document
+          .querySelectorAll(".filter-btn[data-sort]")
+          .forEach((b) => b.classList.remove("active"));
+        btn.classList.add("active");
 
-        if (chrome.runtime.lastError) {
-          showError("Connection error. Please try again.");
-          return;
-        }
+        let timeFilter = document.getElementById("time-filter");
+        if (timeFilter)
+          timeFilter.style.display = currentSort === "top" ? "flex" : "none";
 
-        if (!response || !response.success) {
-          showError(response?.error || "Failed to fetch Reddit discussions.");
-          return;
-        }
+        if (currentSort !== "top") currentTimePeriod = "all";
 
-        displayResults(response.data ?? []);
-      },
-    );
-  }
+        searchReddit();
+      });
+    });
 
-  function urlKeywordsExtractor(url: string | undefined): string {
-    if (!url) return "general discussion";
+  // time period buttons — only relevant when sort is "top"
+  document
+    .querySelectorAll<HTMLElement>(".filter-btn[data-time]")
+    .forEach((btn) => {
+      btn.addEventListener("click", function () {
+        currentTimePeriod = btn.dataset.time ?? "all";
 
-    try {
-      let urlObj = new URL(url);
-      let pathParts = urlObj.pathname
-        .split("/")
-        .filter((part) => part.length > 2)
-        .map((part) => part.replace(/[-_]/g, " "))
-        .slice(0, 7);
+        document
+          .querySelectorAll(".filter-btn[data-time]")
+          .forEach((b) => b.classList.remove("active"));
+        btn.classList.add("active");
 
-      if (pathParts.length === 0) return urlObj.hostname.replace(/^www\./, "");
-      return pathParts.join(" ");
-    } catch {
-      return "general discussion";
-    }
-  }
+        searchReddit();
+      });
+    });
 });
+
+function searchReddit(): void {
+  if (!query) {
+    loadingScreen(false);
+    showError(
+      "No search query available. Try selecting some text on the page.",
+    );
+    return;
+  }
+
+  clearResults();
+  hideError();
+  loadingScreen(true);
+
+  chrome.runtime.sendMessage(
+    {
+      action: "amaan_ka_sandesh_for_background_script",
+      query: query.trim(),
+      limit: 20,
+      sortBy: currentSort,
+      timePeriod: currentTimePeriod,
+    },
+    function (response: {
+      success: boolean;
+      data?: RedditPost[];
+      error?: string;
+    }) {
+      loadingScreen(false);
+
+      if (chrome.runtime.lastError) {
+        showError("Connection error. Please try again.");
+        return;
+      }
+
+      if (!response || !response.success) {
+        showError(response?.error || "Failed to fetch Reddit discussions.");
+        return;
+      }
+
+      showFilterBar();
+      displayResults(response.data ?? []);
+    },
+  );
+}
+
+function urlKeywordsExtractor(url: string | undefined): string {
+  if (!url) return "general discussion";
+
+  try {
+    let urlObj = new URL(url);
+    let pathParts = urlObj.pathname
+      .split("/")
+      .filter((part) => part.length > 2)
+      .map((part) => part.replace(/[-_]/g, " "))
+      .slice(0, 7);
+
+    if (pathParts.length === 0) return urlObj.hostname.replace(/^www\./, "");
+    return pathParts.join(" ");
+  } catch {
+    return "general discussion";
+  }
+}
 
 function updateSearchModeIndicator(q: string, mode: string): void {
   let searchModeDiv = document.getElementById("search-mode");
@@ -101,6 +154,11 @@ function updateSearchModeIndicator(q: string, mode: string): void {
     if (searchInfo)
       searchInfo.innerHTML = `<strong>Searching by ${mode}:</strong> <span class="query">"${q}"</span>`;
   }
+}
+
+function showFilterBar(): void {
+  let filterBar = document.getElementById("filter-bar");
+  if (filterBar) filterBar.style.display = "flex";
 }
 
 function loadingScreen(show: boolean): void {
@@ -158,7 +216,8 @@ function createPostElement(post: RedditPost): HTMLDivElement {
 
   let scoreText = formatScore(post.score);
   let timeText = formatTime(post.created_utc);
-  let displayTitle = post.title.length > 80 ? post.title.substring(0, 80) + "..." : post.title;
+  let displayTitle =
+    post.title.length > 80 ? post.title.substring(0, 80) + "..." : post.title;
 
   div.innerHTML = `
     <div class="post-header">
@@ -187,7 +246,8 @@ function createPostElement(post: RedditPost): HTMLDivElement {
   `;
 
   div.addEventListener("click", function (e) {
-    if ((e.target as HTMLElement).tagName !== "A") window.open(post.url, "_blank"); // don't double-fire if they clicked the title link
+    if ((e.target as HTMLElement).tagName !== "A")
+      window.open(post.url, "_blank"); // don't double-fire if they clicked the title link
   });
 
   return div;

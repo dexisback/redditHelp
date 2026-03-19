@@ -32,13 +32,16 @@ chrome.runtime.onMessage.addListener(function (message, sender, sendResponse) {
     }
 
     let limit: number = message.limit || 10;
-    let sortBy = "relevance";
-    let timePeriod = "all";
-    let cacheKey = `${query}:${limit}`;
+    let sortBy: string = message.sortBy || "relevance";
+    let timePeriod: string = message.timePeriod || "all";
+    let cacheKey = `${query}:${limit}:${sortBy}:${timePeriod}`;
 
     let now = Date.now();
     if (now - lastRequestTime < MIN_REQUEST_INTERVAL) {
-      sendResponse({ success: false, error: "Please wait a moment before searching again" });
+      sendResponse({
+        success: false,
+        error: "Please wait a moment before searching again",
+      });
       return true;
     }
     lastRequestTime = now;
@@ -58,16 +61,17 @@ chrome.runtime.onMessage.addListener(function (message, sender, sendResponse) {
       })
       .catch(function (error: Error) {
         console.error("Reddit search failed:", error);
-        sendResponse({ success: false, error: error.message || "Failed to search Reddit" });
+        sendResponse({
+          success: false,
+          error: error.message || "Failed to search Reddit",
+        });
       });
 
     return true; // keeps the message channel open so the async fetch above can still call sendResponse
-
   } else if (message.action === "clearCache") {
     searchCache.clear();
     sendResponse({ success: true });
     return true;
-
   } else if (message.action === "getCacheInfo") {
     sendResponse({
       success: true,
@@ -75,14 +79,21 @@ chrome.runtime.onMessage.addListener(function (message, sender, sendResponse) {
       cacheKeys: Array.from(searchCache.keys()),
     });
     return true;
-
   } else {
-    sendResponse({ success: false, error: "Unknown action: " + message.action });
+    sendResponse({
+      success: false,
+      error: "Unknown action: " + message.action,
+    });
     return true;
   }
 });
 
-function performRedditSearch(query: string, limit: number, sortBy: string, timePeriod: string): Promise<RedditPost[]> {
+function performRedditSearch(
+  query: string,
+  limit: number,
+  sortBy: string,
+  timePeriod: string,
+): Promise<RedditPost[]> {
   return new Promise(function (resolve, reject) {
     let searchURL = buildRedditURL(query, limit, sortBy, timePeriod);
     console.log("Search URL:", searchURL);
@@ -99,10 +110,16 @@ function performRedditSearch(query: string, limit: number, sortBy: string, timeP
         clearTimeout(timeoutId);
 
         if (!response.ok) {
-          if (response.status === 429) throw new Error("Reddit API limit exhausted");
-          else if (response.status === 403) throw new Error("Access denied by Reddit");
-          else if (response.status === 404) throw new Error("Reddit endpoint not found");
-          else throw new Error(`Reddit API error: ${response.status} ${response.statusText}`);
+          if (response.status === 429)
+            throw new Error("Reddit API limit exhausted");
+          else if (response.status === 403)
+            throw new Error("Access denied by Reddit");
+          else if (response.status === 404)
+            throw new Error("Reddit endpoint not found");
+          else
+            throw new Error(
+              `Reddit API error: ${response.status} ${response.statusText}`,
+            );
         }
 
         let contentType = response.headers.get("content-type");
@@ -133,7 +150,12 @@ function performRedditSearch(query: string, limit: number, sortBy: string, timeP
   });
 }
 
-function buildRedditURL(query: string, limit: number, sortBy: string, timePeriod: string): string {
+function buildRedditURL(
+  query: string,
+  limit: number,
+  sortBy: string,
+  timePeriod: string,
+): string {
   let baseURL = "https://www.reddit.com/search.json";
   let params = new URLSearchParams({
     q: query,
