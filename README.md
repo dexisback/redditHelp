@@ -6,7 +6,7 @@ A Chrome extension that finds relevant Reddit discussions for whatever page you'
 
 ## Getting started
 
-Since this isn't on the Chrome Web Store, you'll need to load it manually. It takes about a minute.
+Since this isn't on the Chrome Web Store, you'll need to load it manually. It takes about a minute:
 
 **1. Clone the repo**
 ```bash
@@ -34,7 +34,7 @@ This generates the `dist/` folder with the compiled JavaScript that Chrome actua
 
 You should see the extension appear in your toolbar. If the icon isn't visible, click the puzzle piece icon in Chrome and pin it.
 
-> Works on any Chromium-based browser — Chrome, Brave, Edge, etc.
+> Works on any Chromium-based browser — Chrome, Brave, Edge, etc etc.
 
 ---
 
@@ -42,11 +42,18 @@ You should see the extension appear in your toolbar. If the icon isn't visible, 
 
 When you click the extension icon, it looks for a search query in this order:
 
-1. **Selected text** — if you've highlighted something on the page, it searches that
-2. **Page title** — falls back to the page title with stopwords stripped out
-3. **URL path** — last resort, pulls keywords from the URL if the title is useless
+1. **Selected text** — Given the most priority. If you've highlighted something on the page, it searches for it
+2. **Page title** — falls back to the page title with stopwords stripped out if no selected text
+3. **URL path** — last resort, pulls keywords from the URL/metadata if the title is useless/not found
 
-Results show the post title, subreddit, upvote count, age, and comment count. Clicking a result opens the Reddit thread.
+Results show :
+- the post title, 
+- subreddit, 
+- upvote count, 
+- age,  
+- comment count. 
+
+Clicking a result opens the Reddit thread.
 
 ---
 
@@ -71,18 +78,10 @@ redditHelp/
 
 ---
 
-## Development
-
-```bash
-npm run watch
-```
-
-This watches `src/` for changes and recompiles automatically. After each recompile, go to `chrome://extensions` and hit the refresh icon on the extension card to reload it.
-
----
 
 ## Notes
 
 - Results are cached for 5 minutes so repeated searches on the same page don't hammer the API
 - There's a 1 second rate limit between searches
 - NSFW results are filtered out by default
+- will be tweaking the styles a bit soon, and adding query filtering options soon, along with enabling 15-20 ish queries
