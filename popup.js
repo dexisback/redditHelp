@@ -1,160 +1,147 @@
-// === Backend logic (your code) ===
-
 let currentSearchMode = "auto";
 let query = "";
 let currentData = {};
 let storedUrlLocally;
 
-// when DOM is loaded up
 window.addEventListener("DOMContentLoaded", function () {
-  chrome.storage.local.get([
-    'pageTitle',
-    'metaDescription',
-    'pageUrl',
-    'selectedText'
-  ], function (data) { // callback function
-    if (data.selectedText) {
-      searchQuery = data.selectedText;
-      currentSearchMode = "selected text";
-    }
-    else if (data.pageTitle) {
-      searchQuery = data.pageTitle;
-      currentSearchMode = "page title";
-    }
-    else {
-      // store the pageUrl because i wanna use it
-      storedUrlLocally = data.pageUrl;
-      searchQuery = urlKeywordsExtractor(storedUrlLocally);
-      currentSearchMode = "page Url";
-    }
+  loadingScreen(true);
 
-    // ✅ only call after query is ready
-    searchReddit(searchQuery);
-  });
+  chrome.storage.local.get(
+    ["pageTitle", "metaDescription", "pageUrl", "selectedText"],
+    function (data) {
+      if (data.selectedText) {
+        query = data.selectedText;
+        currentSearchMode = "selected text";
+      } else if (data.pageTitle) {
+        query = data.pageTitle;
+        currentSearchMode = "page title";
+      } else {
+        storedUrlLocally = data.pageUrl;
+        query = urlKeywordsExtractor(storedUrlLocally);
+        currentSearchMode = "page URL";
+      }
 
+      updateSearchModeIndicator(query, currentSearchMode);
+      searchReddit(query);
+    },
+  );
 
   function searchReddit(query) {
     if (!query) {
-      showError(`sorry lmao`);
+      loadingScreen(false);
+      showError(
+        "No search query available. Try selecting some text on the page.",
+      );
       return;
     }
-    else {
-      // send the message to radar for someone (background script to catch):
-      chrome.runtime.sendMessage({
+
+    chrome.runtime.sendMessage(
+      {
         action: "amaan_ka_sandesh_for_background_script",
         query: query.trim(),
-        limit: 8
-      }, function (response) { // choose what we do with the response
-        loadingScreen(false); // hide loading screen;
+        limit: 8,
+      },
+      function (response) {
+        loadingScreen(false);
+
         if (chrome.runtime.lastError) {
-          showError(`lmao square`);
+          showError("Connection error. Please try again.");
           return;
         }
-        else if (response) { // else if response does actually exist
-          // show the response.data in our display:
-          displayResults(response.data);
+
+        if (!response || !response.success) {
+          showError(response?.error || "Failed to fetch Reddit discussions.");
+          return;
         }
-      })
-    }
+
+        displayResults(response.data);
+      },
+    );
   }
 
-  function urlKeywordsExtractor(storedUrlLocally) {
-    if (!storedUrlLocally) return "general discussion";
+  function urlKeywordsExtractor(url) {
+    if (!url) return "general discussion";
 
     try {
-      // https://example.com/learn/programming/javascript/react/hooks
-      // https://shop.com/products/iphone15/review
-      let urlObj = new URL(storedUrlLocally);
-      let pathParts = urlObj.pathname.split("/")
-        .filter(part => part.length > 2)
-        // .filter(part => !part.match(/^\d+$/)) // optional
-        .map(part => part.replace(/[-_]/g, " "))
+      let urlObj = new URL(url);
+      let pathParts = urlObj.pathname
+        .split("/")
+        .filter((part) => part.length > 2)
+        .map((part) => part.replace(/[-_]/g, " "))
         .slice(0, 7);
 
-      if (pathParts.length === 0) {
-        return urlObj.hostname.replace(/^www\./, "");
-      }
+      if (pathParts.length === 0) return urlObj.hostname.replace(/^www\./, "");
       return pathParts.join(" ");
-    }
-    catch (err) {
+    } catch (err) {
       return "general discussion";
     }
   }
 });
 
+function updateSearchModeIndicator(query, mode) {
+  let searchModeDiv = document.getElementById("search-mode");
+  if (searchModeDiv) {
+    searchModeDiv.querySelector(".search-info").innerHTML =
+      `<strong>Searching by ${mode}:</strong> <span class="query">"${query}"</span>`;
+  }
+}
 
-// === UI / DOM Helpers (from original popup.js) ===
-
-// Show or hide the loading spinner
 function loadingScreen(show) {
-  let loadingDiv = document.getElementById('loading');
-  if (loadingDiv) {
-    loadingDiv.style.display = show ? 'block' : 'none';
-  }
+  let loadingDiv = document.getElementById("loading");
+  if (loadingDiv) loadingDiv.style.display = show ? "flex" : "none";
 }
 
-// Show error message
 function showError(message) {
-  let errorDiv = document.getElementById('error');
+  let errorDiv = document.getElementById("error");
   if (errorDiv) {
-    errorDiv.textContent = message;
-    errorDiv.style.display = 'block';
+    let msgEl = errorDiv.querySelector(".error-message"); // target the child so the icon and suggestion text in the HTML stay intact
+    if (msgEl) msgEl.textContent = message;
+    errorDiv.style.display = "flex";
   }
 }
 
-// Clear error message
 function hideError() {
-  let errorDiv = document.getElementById('error');
-  if (errorDiv) {
-    errorDiv.style.display = 'none';
-  }
+  let errorDiv = document.getElementById("error");
+  if (errorDiv) errorDiv.style.display = "none";
 }
 
-// Clear results
 function clearResults() {
-  let resultsDiv = document.getElementById('results');
-  if (resultsDiv) {
-    resultsDiv.innerHTML = '';
-  }
+  let resultsDiv = document.getElementById("results");
+  if (resultsDiv) resultsDiv.innerHTML = "";
 }
 
-// Display Reddit results
 function displayResults(redditPosts) {
-  let resultsDiv = document.getElementById('results');
-  resultsDiv.innerHTML = '';
+  let resultsDiv = document.getElementById("results");
+  resultsDiv.innerHTML = "";
 
   if (!redditPosts || redditPosts.length === 0) {
-    showError("No discussions found on Reddit");
+    showError("No discussions found on Reddit for this topic.");
     return;
   }
 
-  let postsContainer = document.createElement('div');
-  postsContainer.className = 'posts-container';
+  let postsContainer = document.createElement("div");
+  postsContainer.className = "posts-container";
 
   redditPosts.forEach(function (post) {
-    let postElement = createPostElement(post);
-    postsContainer.appendChild(postElement);
+    postsContainer.appendChild(createPostElement(post));
   });
 
   resultsDiv.appendChild(postsContainer);
 
-  let countDiv = document.createElement('div');
-  countDiv.className = 'results-count';
+  let countDiv = document.createElement("div");
+  countDiv.className = "results-count";
   countDiv.textContent = `Found ${redditPosts.length} discussions`;
   resultsDiv.insertBefore(countDiv, postsContainer);
 }
 
-// Create HTML element for a Reddit post
 function createPostElement(post) {
-  let div = document.createElement('div');
-  div.className = 'reddit-post';
+  let div = document.createElement("div");
+  div.className = "reddit-post";
 
   let scoreText = formatScore(post.score);
-  let timeText = formatTime(post.created);
-
-  let displayTitle = post.title.length > 80 ?
-    post.title.substring(0, 80) + '...' :
-    post.title;
+  let timeText = formatTime(post.created_utc);
+  let displayTitle =
+    post.title.length > 80 ? post.title.substring(0, 80) + "..." : post.title;
 
   div.innerHTML = `
     <div class="post-header">
@@ -164,7 +151,7 @@ function createPostElement(post) {
         </a>
       </h3>
     </div>
-    
+
     <div class="post-meta">
       <span class="subreddit">r/${post.subreddit}</span>
       <span class="separator">•</span>
@@ -174,56 +161,36 @@ function createPostElement(post) {
       <span class="separator">•</span>
       <span class="comments">${post.num_comments} comments</span>
     </div>
-    
-    ${post.selftext_preview ?
-      `<p class="post-preview">${post.selftext_preview}</p>` :
-      '<p class="post-preview">Click to read discussion</p>'
+
+    ${
+      post.selftext_preview
+        ? `<p class="post-preview">${post.selftext_preview}</p>`
+        : `<p class="post-preview">Click to read discussion</p>`
     }
   `;
 
-  div.addEventListener('click', function (e) {
-    if (e.target.tagName !== 'A') {
-      window.open(post.url, '_blank');
-    }
+  div.addEventListener("click", function (e) {
+    if (e.target.tagName !== "A") window.open(post.url, "_blank"); // don't double-fire if they clicked the title link
   });
 
   return div;
 }
 
-// Format upvotes
 function formatScore(score) {
-  if (score >= 10000) {
-    return Math.floor(score / 1000) + 'k';
-  } else if (score >= 1000) {
-    return (score / 1000).toFixed(1) + 'k';
-  } else {
-    return score.toString();
-  }
+  if (score >= 10000) return Math.floor(score / 1000) + "k";
+  if (score >= 1000) return (score / 1000).toFixed(1) + "k";
+  return score.toString();
 }
 
-// Format post time
 function formatTime(timestamp) {
-  if (!timestamp) return 'unknown';
+  if (!timestamp) return "unknown";
 
-  let now = Date.now() / 1000;
+  let now = Date.now() / 1000; // Reddit timestamps are Unix seconds, not ms
   let diff = now - timestamp;
 
-  if (diff < 3600) {
-    let minutes = Math.floor(diff / 60);
-    return `${minutes}m ago`;
-  } else if (diff < 86400) {
-    let hours = Math.floor(diff / 3600);
-    return `${hours}h ago`;
-  } else if (diff < 2592000) {
-    let days = Math.floor(diff / 86400);
-    return `${days}d ago`;
-  } else if (diff < 31536000) {
-    let months = Math.floor(diff / 2592000);
-    return `${months}mo ago`;
-  } else {
-    let years = Math.floor(diff / 31536000);
-    return `${years}y ago`;
-  }
+  if (diff < 3600) return `${Math.floor(diff / 60)}m ago`;
+  if (diff < 86400) return `${Math.floor(diff / 3600)}h ago`;
+  if (diff < 2592000) return `${Math.floor(diff / 86400)}d ago`;
+  if (diff < 31536000) return `${Math.floor(diff / 2592000)}mo ago`;
+  return `${Math.floor(diff / 31536000)}y ago`;
 }
-
-
