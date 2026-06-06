@@ -57,6 +57,39 @@ Clicking a result opens the Reddit thread.
 
 ---
 
+## Architecture
+
+```mermaid
+flowchart TD
+    subgraph Browser["User's Browser"]
+        direction TB
+        Page[(Webpage)]
+        Store[(chrome.storage.local)]
+    end
+
+    subgraph Extension["Chrome Extension"]
+        direction TB
+        CS[content.ts<br/>content script]
+        POP[popup.ts<br/>popup UI]
+        BG[background.ts<br/>service worker]
+    end
+
+    subgraph Reddit["Reddit"]
+        API[search.json API]
+    end
+
+    Page -->|title / selection / URL| CS
+    CS -->|stores page data| Store
+    POP -->|reads stored query| Store
+    POP -->|sends search request| BG
+    BG -->|fetch| API
+    API -->|JSON results| BG
+    BG -->|cached results| POP
+    POP -->|renders cards| User[(User)]
+```
+
+---
+
 ## Folder structure
 
 ```
