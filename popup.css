@@ -520,7 +520,125 @@ body {
     color: var(--text-primary);
 }
 
-/* Settings */
+/* Settings gear button */
+.settings-gear {
+  position: absolute;
+  top: 8px;
+  right: 8px;
+  background: none;
+  border: none;
+  font-size: 18px;
+  cursor: pointer;
+  opacity: 0.6;
+  transition: opacity var(--transition-fast);
+  padding: 4px 8px;
+  border-radius: var(--radius-sm);
+  line-height: 1;
+}
+
+.settings-gear:hover {
+  opacity: 1;
+  background: rgba(0, 0, 0, 0.1);
+}
+
+/* Full settings panel */
+.settings-panel {
+  background: var(--surface-color);
+  border-bottom: 1px solid var(--border-color);
+  padding: var(--spacing-md);
+  font-size: 12px;
+}
+
+.settings-panel-header {
+  font-weight: 600;
+  font-size: 13px;
+  margin-bottom: var(--spacing-sm);
+  color: var(--text-primary);
+}
+
+.settings-panel-desc {
+  font-size: 11px;
+  color: var(--text-secondary);
+  margin-bottom: var(--spacing-md);
+  line-height: 1.5;
+}
+
+.settings-panel-desc a {
+  color: var(--secondary-color);
+}
+
+.settings-field {
+  margin-bottom: var(--spacing-sm);
+}
+
+.settings-field label {
+  display: block;
+  font-size: 11px;
+  font-weight: 500;
+  color: var(--text-primary);
+  margin-bottom: 3px;
+}
+
+.settings-field input {
+  width: 100%;
+  padding: 6px 8px;
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius-sm);
+  font-size: 12px;
+  background: var(--background-color);
+  color: var(--text-primary);
+  outline: none;
+  transition: border-color var(--transition-fast);
+}
+
+.settings-field input:focus {
+  border-color: var(--secondary-color);
+}
+
+.settings-buttons {
+  margin-top: var(--spacing-md);
+}
+
+.settings-buttons .btn {
+  width: 100%;
+}
+
+.auth-status {
+  display: none;
+  margin-top: var(--spacing-sm);
+  padding: var(--spacing-sm);
+  border-radius: var(--radius-sm);
+  font-size: 11px;
+  font-weight: 500;
+  text-align: center;
+}
+
+.auth-status.setup {
+  display: block;
+  background: rgba(0, 121, 211, 0.1);
+  color: var(--secondary-color);
+}
+
+.auth-status.saving {
+  display: block;
+  background: var(--surface-color);
+  color: var(--text-secondary);
+  border: 1px solid var(--border-color);
+}
+
+.auth-status.success {
+  display: block;
+  background: rgba(70, 209, 96, 0.1);
+  color: var(--success-color);
+}
+
+.auth-status.error {
+  display: block;
+  background: rgba(234, 0, 39, 0.1);
+  color: var(--error-color);
+}
+
+/* Settings (old) */
 .settings-container {
     background: var(--surface-color);
     border-top: 1px solid var(--border-color);

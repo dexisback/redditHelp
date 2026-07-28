@@ -26,6 +26,44 @@ let storedUrlLocally: string | undefined;
 window.addEventListener("DOMContentLoaded", function () {
   loadingScreen(true);
 
+  checkAuthAndProceed();
+  setupSettingsUI();
+  setupFilterButtons();
+});
+
+function checkAuthAndProceed(): void {
+  chrome.runtime.sendMessage({ action: "checkRedditAuth" }, function (response) {
+    if (chrome.runtime.lastError || !response) {
+      loadingScreen(false);
+      showError("Connection error. Reload the extension.");
+      return;
+    }
+
+    if (response.authenticated) {
+      document.getElementById("settings-panel")!.style.display = "none";
+      loadPageData();
+    } else {
+      loadingScreen(false);
+      document.getElementById("settings-panel")!.style.display = "block";
+      showAuthStatus("setup", "Configure your Reddit API credentials to start searching.");
+      prefillCredentials();
+    }
+  });
+}
+
+function prefillCredentials(): void {
+  chrome.storage.local.get(
+    ["redditClientId", "redditClientSecret", "redditUsername", "redditPassword"],
+    function (data: { [key: string]: any }) {
+      if (data.redditClientId) (document.getElementById("reddit-client-id") as HTMLInputElement).value = data.redditClientId as string;
+      if (data.redditClientSecret) (document.getElementById("reddit-client-secret") as HTMLInputElement).value = data.redditClientSecret as string;
+      if (data.redditUsername) (document.getElementById("reddit-username") as HTMLInputElement).value = data.redditUsername as string;
+      if (data.redditPassword) (document.getElementById("reddit-password") as HTMLInputElement).value = data.redditPassword as string;
+    },
+  );
+}
+
+function loadPageData(): void {
   chrome.storage.local.get(
     ["pageTitle", "metaDescription", "pageUrl", "selectedText"],
     function (data: StorageData) {
@@ -45,8 +83,54 @@ window.addEventListener("DOMContentLoaded", function () {
       searchReddit();
     },
   );
+}
 
-  // sort filter buttons
+function setupSettingsUI(): void {
+  document.getElementById("settings-toggle")!.addEventListener("click", function () {
+    let panel = document.getElementById("settings-panel")!;
+    let isOpen = panel.style.display !== "none";
+    panel.style.display = isOpen ? "none" : "block";
+    if (!isOpen) prefillCredentials();
+  });
+
+  document.getElementById("save-credentials")!.addEventListener("click", function () {
+    let clientId = (document.getElementById("reddit-client-id") as HTMLInputElement).value.trim();
+    let clientSecret = (document.getElementById("reddit-client-secret") as HTMLInputElement).value.trim();
+    let username = (document.getElementById("reddit-username") as HTMLInputElement).value.trim();
+    let password = (document.getElementById("reddit-password") as HTMLInputElement).value;
+
+    if (!clientId || !clientSecret || !username || !password) {
+      showAuthStatus("error", "All fields are required.");
+      return;
+    }
+
+    showAuthStatus("saving", "Testing credentials...");
+
+    chrome.runtime.sendMessage(
+      {
+        action: "saveRedditCredentials",
+        credentials: { clientId, clientSecret, username, password },
+      },
+      function (response) {
+        if (chrome.runtime.lastError || !response) {
+          showAuthStatus("error", "Connection error. Try again.");
+          return;
+        }
+        if (response.success) {
+          showAuthStatus("success", "Connected! Searching Reddit...");
+          setTimeout(function () {
+            document.getElementById("settings-panel")!.style.display = "none";
+            loadPageData();
+          }, 800);
+        } else {
+          showAuthStatus("error", response.error || "Authentication failed. Check credentials.");
+        }
+      },
+    );
+  });
+}
+
+function setupFilterButtons(): void {
   document
     .querySelectorAll<HTMLElement>(".filter-btn[data-sort]")
     .forEach((btn) => {
@@ -68,7 +152,6 @@ window.addEventListener("DOMContentLoaded", function () {
       });
     });
 
-  // time period buttons — only relevant when sort is "top"
   document
     .querySelectorAll<HTMLElement>(".filter-btn[data-time]")
     .forEach((btn) => {
@@ -83,14 +166,19 @@ window.addEventListener("DOMContentLoaded", function () {
         searchReddit();
       });
     });
-});
+}
+
+function showAuthStatus(type: string, message: string): void {
+  let statusEl = document.getElementById("auth-status")!;
+  statusEl.style.display = "block";
+  statusEl.className = "auth-status " + type;
+  statusEl.textContent = message;
+}
 
 function searchReddit(): void {
   if (!query) {
     loadingScreen(false);
-    showError(
-      "No search query available. Try selecting some text on the page.",
-    );
+    showError("No search query available. Try selecting some text on the page.");
     return;
   }
 
@@ -169,7 +257,7 @@ function loadingScreen(show: boolean): void {
 function showError(message: string): void {
   let errorDiv = document.getElementById("error");
   if (errorDiv) {
-    let msgEl = errorDiv.querySelector(".error-message"); // target the child so the icon and suggestion text in the HTML stay intact
+    let msgEl = errorDiv.querySelector(".error-message");
     if (msgEl) msgEl.textContent = message;
     errorDiv.style.display = "flex";
   }
@@ -247,7 +335,7 @@ function createPostElement(post: RedditPost): HTMLDivElement {
 
   div.addEventListener("click", function (e) {
     if ((e.target as HTMLElement).tagName !== "A")
-      window.open(post.url, "_blank"); // don't double-fire if they clicked the title link
+      window.open(post.url, "_blank");
   });
 
   return div;
@@ -262,7 +350,7 @@ function formatScore(score: number): string {
 function formatTime(timestamp: number): string {
   if (!timestamp) return "unknown";
 
-  let now = Date.now() / 1000; // Reddit timestamps are Unix seconds, not ms
+  let now = Date.now() / 1000;
   let diff = now - timestamp;
 
   if (diff < 3600) return `${Math.floor(diff / 60)}m ago`;

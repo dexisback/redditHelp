@@ -15,6 +15,7 @@
                     Find discussions about this page
                 </div>
             </div>
+            <button id="settings-toggle" class="settings-gear" title="Settings">⚙️</button>
         </header>
 
         <!-- Search mode indicator -->
@@ -127,24 +128,36 @@
             </div>
         </div>
 
-        <!-- Settings/Options (optional for future) -->
-        <div id="settings" class="settings-container" style="display: none">
-            <div class="settings-item">
-                <label>
-                    <input type="checkbox" id="show-nsfw" /> Show NSFW content
-                </label>
+        <!-- Settings panel -->
+        <div id="settings-panel" class="settings-panel" style="display: none">
+            <div class="settings-panel-header">Reddit API Setup</div>
+            <div class="settings-panel-desc">
+                Reddit now requires API authentication. Create a <strong>script</strong> app at
+                <a href="https://www.reddit.com/prefs/apps" target="_blank">reddit.com/prefs/apps</a>
+                and enter the credentials below.
+                <br/><br/>
+                <strong>Note:</strong> Does not work with 2FA-enabled accounts.
             </div>
-            <div class="settings-item">
-                <label>
-                    Results per search:
-                    <select id="results-limit">
-                        <option value="5">5</option>
-                        <option value="8" selected>8</option>
-                        <option value="10">10</option>
-                        <option value="15">15</option>
-                    </select>
-                </label>
+            <div class="settings-field">
+                <label for="reddit-client-id">Client ID</label>
+                <input type="text" id="reddit-client-id" placeholder="e.g. abc123def456" />
             </div>
+            <div class="settings-field">
+                <label for="reddit-client-secret">Client Secret</label>
+                <input type="password" id="reddit-client-secret" placeholder="e.g. xyz789..." />
+            </div>
+            <div class="settings-field">
+                <label for="reddit-username">Reddit Username</label>
+                <input type="text" id="reddit-username" placeholder="Your Reddit username" />
+            </div>
+            <div class="settings-field">
+                <label for="reddit-password">Reddit Password</label>
+                <input type="password" id="reddit-password" placeholder="Your Reddit password" />
+            </div>
+            <div class="settings-buttons">
+                <button id="save-credentials" class="btn btn-primary">Save & Test</button>
+            </div>
+            <div id="auth-status" class="auth-status"></div>
         </div>
 
         <script src="dist/popup.js"></script>

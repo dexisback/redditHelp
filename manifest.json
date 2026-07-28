@@ -6,7 +6,7 @@
 
   "permissions": ["activeTab", "storage"],
 
-  "host_permissions": ["https://www.reddit.com/*"],
+  "host_permissions": ["https://www.reddit.com/*", "https://oauth.reddit.com/*"],
 
   "action": {
     "default_popup": "popup.html"
