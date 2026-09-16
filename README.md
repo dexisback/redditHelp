@@ -74,19 +74,19 @@ flowchart TD
         OAuthAPI[oauth.reddit.com/search<br/>OAuth 2.0 API]
     end
 
-    Page -->|title / selection / URL| CS
-    CS -->|responds to getPageInfo| POP
-    POP -->|search request| BG
-    OPT -->|save/reset credentials| BG
-    BG -->|checks mode & credentials| Store
+    Page -->|"title / selection / URL"| CS
+    CS -->|"responds to getPageInfo"| POP
+    POP -->|"search request"| BG
+    OPT -->|"save / reset credentials"| BG
+    BG -->|"checks mode & credentials"| Store
     
-    BG -->|Public Mode (Default)| PublicAPI
-    BG -->|OAuth Mode (If configured)| OAuthAPI
+    BG -->|"Public Mode (Default)"| PublicAPI
+    BG -->|"OAuth Mode (If configured)"| OAuthAPI
     
-    PublicAPI -->|Atom/RSS results| BG
-    OAuthAPI -->|JSON results| BG
-    BG -->|cached discussions| POP
-    POP -->|renders post cards| User[(User)]
+    PublicAPI -->|"Atom/RSS results"| BG
+    OAuthAPI -->|"JSON results"| BG
+    BG -->|"cached discussions"| POP
+    POP -->|"renders post cards"| User[(User)]
 ```
 
 ---
