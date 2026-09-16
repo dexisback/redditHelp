@@ -6,10 +6,18 @@
 
   "permissions": ["activeTab", "storage"],
 
-  "host_permissions": ["https://www.reddit.com/*", "https://oauth.reddit.com/*"],
+  "host_permissions": [
+    "https://*.reddit.com/*",
+    "https://reddit.com/*"
+  ],
 
   "action": {
     "default_popup": "popup.html"
+  },
+
+  "options_ui": {
+    "page": "options.html",
+    "open_in_tab": true
   },
 
   "background": {
@@ -19,7 +27,8 @@
   "content_scripts": [
     {
       "matches": ["<all_urls>"],
-      "js": ["dist/content.js"]
+      "js": ["dist/content.js"],
+      "run_at": "document_idle"
     }
   ]
 }

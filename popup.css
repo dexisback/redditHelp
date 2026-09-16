@@ -147,11 +147,11 @@ body {
     flex: 1;
 }
 
-/* Action buttons */
+/* Action buttons (50% / 50% split) */
 .action-buttons {
     display: flex;
     gap: var(--spacing-sm);
-    padding: var(--spacing-md);
+    padding: var(--spacing-sm) var(--spacing-md);
     background: var(--background-color);
     border-bottom: 1px solid var(--border-color);
     position: sticky;
@@ -159,8 +159,18 @@ body {
     z-index: 8;
 }
 
+.action-btn-half {
+    flex: 1 1 50%;
+    min-width: 0;
+    padding: 8px 10px;
+    font-size: 11px;
+    font-weight: 600;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
 .btn {
-    flex: 1;
     padding: var(--spacing-sm) var(--spacing-md);
     border: 1px solid var(--border-color);
     border-radius: var(--radius-md);
@@ -554,17 +564,81 @@ body {
   font-size: 13px;
   margin-bottom: var(--spacing-sm);
   color: var(--text-primary);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
 }
 
-.settings-panel-desc {
+.mode-badge {
+  font-size: 10px;
+  font-weight: 600;
+  padding: 2px 8px;
+  border-radius: 12px;
+  background: rgba(0, 121, 211, 0.15);
+  color: var(--secondary-color);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.mode-badge.oauth {
+  background: rgba(70, 209, 96, 0.15);
+  color: #27ae60;
+}
+
+/* Collapsible guide card */
+.guide-details {
+  background: var(--background-color);
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius-md);
+  margin-bottom: var(--spacing-md);
+  padding: var(--spacing-sm);
+}
+
+.guide-summary {
+  font-weight: 600;
+  font-size: 11px;
+  color: var(--secondary-color);
+  cursor: pointer;
+  outline: none;
+  user-select: none;
+}
+
+.guide-content {
+  margin-top: var(--spacing-sm);
   font-size: 11px;
   color: var(--text-secondary);
-  margin-bottom: var(--spacing-md);
   line-height: 1.5;
 }
 
-.settings-panel-desc a {
+.guide-intro {
+  padding-bottom: var(--spacing-xs);
+  border-bottom: 1px dashed var(--border-color);
+  margin-bottom: var(--spacing-xs);
+}
+
+.guide-step {
+  margin-bottom: var(--spacing-sm);
+}
+
+.guide-step a {
   color: var(--secondary-color);
+  font-weight: 600;
+  text-decoration: underline;
+}
+
+.guide-step code {
+  background: var(--surface-color);
+  border: 1px solid var(--border-color);
+  padding: 1px 4px;
+  border-radius: 3px;
+  font-family: monospace;
+  font-size: 10px;
+  color: var(--text-primary);
+}
+
+.guide-step ul {
+  margin-top: 3px;
+  padding-left: 16px;
 }
 
 .settings-field {

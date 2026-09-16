@@ -15,7 +15,6 @@
                     Find discussions about this page
                 </div>
             </div>
-            <button id="settings-toggle" class="settings-gear" title="Settings">⚙️</button>
         </header>
 
         <!-- Search mode indicator -->
@@ -25,21 +24,21 @@
             </div>
         </div>
 
-        <!-- Action buttons -->
+        <!-- Top Action bar with 2 buttons (50% Switch Mode / 50% Settings & Guide) -->
         <div class="action-buttons">
             <button
                 id="switch-mode"
-                class="btn btn-secondary"
-                style="display: none"
+                class="btn btn-secondary action-btn-half"
+                title="Switch between selected text, page title, and URL keywords"
             >
                 🔄 Switch Mode
             </button>
             <button
-                id="refresh-search"
-                class="btn btn-primary"
-                style="display: none"
+                id="open-settings"
+                class="btn btn-primary action-btn-half"
+                title="Open Settings & Setup Guide in a new tab"
             >
-                ↻ Refresh
+                ⚙️ Settings & Guide
             </button>
         </div>
 
@@ -101,19 +100,6 @@
             </div>
         </div>
 
-        <!-- Footer with tips -->
-        <footer class="popup-footer" style="display: none">
-            <div class="tips">
-                <div class="tip">
-                    💡 <strong>Tip:</strong> Select text for specific searches
-                </div>
-                <div class="tip">
-                    ⌨️ Press <kbd>S</kbd> to switch modes, <kbd>R</kbd> to
-                    refresh
-                </div>
-            </div>
-        </footer>
-
         <!-- Empty state (when no data available) -->
         <div id="empty-state" class="empty-state" style="display: none">
             <div class="empty-icon">📄</div>
@@ -128,37 +114,17 @@
             </div>
         </div>
 
-        <!-- Settings panel -->
-        <div id="settings-panel" class="settings-panel" style="display: none">
-            <div class="settings-panel-header">Reddit API Setup</div>
-            <div class="settings-panel-desc">
-                Reddit now requires API authentication. Create a <strong>script</strong> app at
-                <a href="https://www.reddit.com/prefs/apps" target="_blank">reddit.com/prefs/apps</a>
-                and enter the credentials below.
-                <br/><br/>
-                <strong>Note:</strong> Does not work with 2FA-enabled accounts.
+        <!-- Footer with tips -->
+        <footer class="popup-footer">
+            <div class="tips">
+                <div class="tip">
+                    💡 <strong>Tip:</strong> Select text for specific topic searches
+                </div>
+                <div class="tip">
+                    ⌨️ Press <kbd>S</kbd> to switch mode, <kbd>R</kbd> to refresh
+                </div>
             </div>
-            <div class="settings-field">
-                <label for="reddit-client-id">Client ID</label>
-                <input type="text" id="reddit-client-id" placeholder="e.g. abc123def456" />
-            </div>
-            <div class="settings-field">
-                <label for="reddit-client-secret">Client Secret</label>
-                <input type="password" id="reddit-client-secret" placeholder="e.g. xyz789..." />
-            </div>
-            <div class="settings-field">
-                <label for="reddit-username">Reddit Username</label>
-                <input type="text" id="reddit-username" placeholder="Your Reddit username" />
-            </div>
-            <div class="settings-field">
-                <label for="reddit-password">Reddit Password</label>
-                <input type="password" id="reddit-password" placeholder="Your Reddit password" />
-            </div>
-            <div class="settings-buttons">
-                <button id="save-credentials" class="btn btn-primary">Save & Test</button>
-            </div>
-            <div id="auth-status" class="auth-status"></div>
-        </div>
+        </footer>
 
         <script src="dist/popup.js"></script>
     </body>

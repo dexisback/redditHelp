@@ -1,0 +1,144 @@
+<!doctype html>
+<html lang="en">
+    <head>
+        <meta charset="UTF-8" />
+        <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+        <title>Reddit Context Helper - Settings & Setup Guide</title>
+        <link rel="stylesheet" href="options.css" />
+    </head>
+    <body>
+        <div class="container">
+            <header class="main-header">
+                <div class="header-brand">
+                    <span class="header-icon">🔍</span>
+                    <div>
+                        <h1>Reddit Context Helper</h1>
+                        <p class="subtitle">Configuration, Search Modes & Setup Guide</p>
+                    </div>
+                </div>
+                <div id="mode-status-badge" class="badge badge-public">Public Search Mode Active</div>
+            </header>
+
+            <main class="content-grid">
+                <!-- Left column: Settings Form -->
+                <section class="card form-card">
+                    <h2>⚙️ API Configuration</h2>
+                    <p class="section-desc">
+                        Configure optional OAuth credentials or use the built-in Public Search Feed.
+                    </p>
+
+                    <div class="field-group">
+                        <label for="client-id">
+                            Client ID <span class="req">*</span>
+                        </label>
+                        <input
+                            type="text"
+                            id="client-id"
+                            placeholder="e.g. abc123def456"
+                            autocomplete="off"
+                        />
+                        <span class="field-hint">Found under your app name on reddit.com/prefs/apps</span>
+                    </div>
+
+                    <div class="field-group">
+                        <label for="client-secret">Client Secret</label>
+                        <input
+                            type="password"
+                            id="client-secret"
+                            placeholder="e.g. xyz789..."
+                            autocomplete="off"
+                        />
+                        <span class="field-hint">Required for "script" apps, leave empty for "installed" apps</span>
+                    </div>
+
+                    <div class="field-row">
+                        <div class="field-group">
+                            <label for="username">Reddit Username <span class="opt">(Optional)</span></label>
+                            <input
+                                type="text"
+                                id="username"
+                                placeholder="Optional"
+                                autocomplete="off"
+                            />
+                        </div>
+                        <div class="field-group">
+                            <label for="password">Reddit Password <span class="opt">(Optional)</span></label>
+                            <input
+                                type="password"
+                                id="password"
+                                placeholder="Optional"
+                                autocomplete="off"
+                            />
+                        </div>
+                    </div>
+
+                    <div class="action-row">
+                        <button id="save-btn" class="btn btn-primary">Save & Connect OAuth</button>
+                        <button id="reset-btn" class="btn btn-secondary">Reset to Public Search Feed</button>
+                    </div>
+
+                    <div id="status-msg" class="status-box" style="display: none;"></div>
+                </section>
+
+                <!-- Right column: Guide & Explanation -->
+                <section class="card guide-card">
+                    <h2>📖 How Search Modes Work</h2>
+
+                    <div class="mode-explainer">
+                        <div class="mode-item active">
+                            <div class="mode-item-header">
+                                <span class="mode-icon">⚡</span>
+                                <div>
+                                    <h3>Public Search Mode (Default & Recommended)</h3>
+                                    <span class="tag">Zero Setup • No API Keys Required</span>
+                                </div>
+                            </div>
+                            <p>
+                                By default, the extension uses Reddit's native public search feeds. It works <strong>immediately upon installing</strong> without needing a Reddit account, developer approval, or API keys.
+                            </p>
+                        </div>
+
+                        <div class="mode-item">
+                            <div class="mode-item-header">
+                                <span class="mode-icon">🔑</span>
+                                <div>
+                                    <h3>OAuth API Mode (For Approved Developers)</h3>
+                                    <span class="tag">Real-Time Scores • Live Comments Count</span>
+                                </div>
+                            </div>
+                            <p>
+                                Connects directly to <code>oauth.reddit.com</code> using your developer credentials. Provides real-time upvotes, comment tallies, and higher rate limits (100 queries/minute).
+                            </p>
+                        </div>
+                    </div>
+
+                    <hr class="divider" />
+
+                    <h2>⚠️ Notice: Reddit API Policy in 2026</h2>
+                    <div class="callout callout-warning">
+                        <strong>Why standard accounts cannot create new apps:</strong>
+                        <p>
+                            Under Reddit's <em>Responsible Builder Policy</em>, Reddit closed self-serve developer registration at <code>reddit.com/prefs/apps</code>. Creating a new app will be blocked unless your account has applied and received formal developer approval from Reddit.
+                        </p>
+                        <p>
+                            <strong>Good news:</strong> You <strong>do not need to create an app</strong> to use this extension! Public Search Mode is active by default and requires no setup.
+                        </p>
+                    </div>
+
+                    <details class="developer-steps">
+                        <summary><strong>Developer Instructions (If you have an approved developer account)</strong></summary>
+                        <ol>
+                            <li>Log into your approved account at <a href="https://www.reddit.com/prefs/apps" target="_blank" rel="noopener noreferrer">reddit.com/prefs/apps</a>.</li>
+                            <li>Click <strong>create an app</strong>, select <strong>script</strong> (or <em>installed app</em>), and set redirect URI to <code>http://localhost:8080</code>.</li>
+                            <li>Tick the reCAPTCHA box and click <strong>create app</strong>.</li>
+                            <li>Copy the <strong>Client ID</strong> (under app name) and <strong>Client Secret</strong> into the form on the left.</li>
+                            <li>Click <strong>Save & Connect OAuth</strong>. <em>(Leave username/password blank for 2FA accounts).</em></li>
+                        </ol>
+                    </details>
+                </section>
+            </main>
+        </div>
+
+        <script src="dist/options.js"></script>
+    </body>
+</html>

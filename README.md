@@ -1,59 +1,54 @@
 # Reddit Context Helper
 
-A Chrome extension that finds relevant Reddit discussions for whatever page you're currently on. Open it, and it automatically searches Reddit based on the page title or any text you've highlighted. No API key, no account needed — it uses Reddit's public search endpoint.
+A Chrome extension that finds relevant Reddit discussions for whatever page you're currently browsing. Open it, and it automatically searches Reddit based on your highlighted text, the webpage title, or URL keywords.
+
+Works **out-of-the-box with zero configuration** (no API key or Reddit account needed) via Reddit's native public search feeds, with optional **OAuth API mode** for approved developers.
 
 ---
 
-## Getting started
+## Features
 
-Since this isn't on the Chrome Web Store, you'll need to load it manually. It takes about a minute:
+- **Dual-Mode Search Engine:**
+  - **Public Search Mode (Default):** Ready to use instantly upon installing with zero setup, zero keys, and zero developer approvals.
+  - **OAuth API Mode (Optional):** Supports Reddit OAuth2 (`client_credentials`, `installed_client`, and `password` grant types) for real-time upvotes, comment counts, and higher rate limits.
+- **Context-Aware Query Detection:**
+  1. **Selected text** — Highlight any text on a page to search for that exact topic.
+  2. **Page title** — Intelligently strips stopwords and punctuation to find discussions about the page topic.
+  3. **URL keywords** — Fallback that extracts meaningful keywords from the URL path.
+- **Interactive UI:**
+  - **50% / 50% Top Action Bar:** One-click mode switching (`🔄 Switch Mode` / <kbd>S</kbd>) and dedicated Settings & Guide (`⚙️ Settings & Guide`).
+  - **Filter Bar:** Sort by Relevance, Hot, Top (with All time / Year / Month / Week / Day / Hour timeframes), New, and Comments.
+  - **Dedicated Settings & Guide Page:** Full-tab options page with live connection testing, policy explanations, and reset controls.
+- **Smart Performance & Caching:**
+  - In-memory result caching (5-minute TTL) to avoid duplicate network requests.
+  - Request throttling and background token lifecycle management.
 
-**1. Clone the repo**
+---
+
+## Getting Started
+
+Since this is an unpacked extension, you can load it in Chrome in under a minute:
+
+### 1. Clone the repository
 ```bash
 git clone https://github.com/dexisback/redditHelp.git
 cd redditHelp
 ```
 
-**2. Install dependencies and build**
-
-The source code is TypeScript, so you need to compile it once before loading the extension.
-
+### 2. Install dependencies & compile TypeScript
 ```bash
 npm install
 npm run build
 ```
 
-This generates the `dist/` folder with the compiled JavaScript that Chrome actually runs.
+This compiles the TypeScript files in `src/` into runnable JavaScript in `dist/`.
 
-**3. Load it in Chrome**
-
-- Go to `chrome://extensions` in your browser
-- Toggle on **Developer mode** (top right corner)
-- Click **Load unpacked** (top left)
-- Select the `redditHelp` folder (the root of the repo, not `src/` or `dist/`)
-
-You should see the extension appear in your toolbar. If the icon isn't visible, click the puzzle piece icon in Chrome and pin it.
-
-> Works on any Chromium-based browser — Chrome, Brave, Edge, etc etc.
-
----
-
-## How it works
-
-When you click the extension icon, it looks for a search query in this order:
-
-1. **Selected text** — Given the most priority. If you've highlighted something on the page, it searches for it
-2. **Page title** — falls back to the page title with stopwords stripped out if no selected text
-3. **URL path** — last resort, pulls keywords from the URL/metadata if the title is useless/not found
-
-Results show :
-- the post title, 
-- subreddit, 
-- upvote count, 
-- age,  
-- comment count. 
-
-Clicking a result opens the Reddit thread.
+### 3. Load unpacked in Chrome
+1. Navigate to `chrome://extensions` in your Chromium-based browser (Chrome, Brave, Edge, Arc, etc.).
+2. Toggle on **Developer mode** (top right corner).
+3. Click **Load unpacked** (top left corner).
+4. Select the `redditHelp` directory (the root folder containing `manifest.json`).
+5. Pin the extension to your toolbar.
 
 ---
 
@@ -64,57 +59,89 @@ flowchart TD
     subgraph Browser["User's Browser"]
         direction TB
         Page[(Webpage)]
+        CS[content.ts<br/>Content Script]
         Store[(chrome.storage.local)]
+        POP[popup.ts<br/>Popup UI]
+        OPT[options.ts<br/>Settings Page]
     end
 
-    subgraph Extension["Chrome Extension"]
-        direction TB
-        CS[content.ts<br/>content script]
-        POP[popup.ts<br/>popup UI]
-        BG[background.ts<br/>service worker]
+    subgraph Background["Extension Service Worker"]
+        BG[background.ts<br/>Search & Auth Engine]
     end
 
-    subgraph Reddit["Reddit"]
-        API[search.json API]
+    subgraph Reddit["Reddit Endpoints"]
+        PublicAPI[search.rss<br/>Public Search Feed]
+        OAuthAPI[oauth.reddit.com/search<br/>OAuth 2.0 API]
     end
 
     Page -->|title / selection / URL| CS
-    CS -->|stores page data| Store
-    POP -->|reads stored query| Store
-    POP -->|sends search request| BG
-    BG -->|fetch| API
-    API -->|JSON results| BG
-    BG -->|cached results| POP
-    POP -->|renders cards| User[(User)]
+    CS -->|responds to getPageInfo| POP
+    POP -->|search request| BG
+    OPT -->|save/reset credentials| BG
+    BG -->|checks mode & credentials| Store
+    
+    BG -->|Public Mode (Default)| PublicAPI
+    BG -->|OAuth Mode (If configured)| OAuthAPI
+    
+    PublicAPI -->|Atom/RSS results| BG
+    OAuthAPI -->|JSON results| BG
+    BG -->|cached discussions| POP
+    POP -->|renders post cards| User[(User)]
 ```
 
 ---
 
-## Folder structure
+## Folder Structure
 
 ```
 redditHelp/
-├── src/                  # TypeScript source — this is what you edit
-│   ├── background.ts     # service worker, handles Reddit API calls + caching
-│   ├── content.ts        # runs on every page, captures title and selected text
-│   └── popup.ts          # drives the popup UI
+├── src/                  # TypeScript source files
+│   ├── background.ts     # Service worker: dual-mode search engine, OAuth & token caching
+│   ├── content.ts        # Content script: live selection & page metadata gatherer
+│   ├── options.ts        # Settings & guide page logic (auth testing & mode management)
+│   └── popup.ts          # Main popup UI logic, mode switcher, and filtering
 │
-├── dist/                 # compiled JS output from `npm run build` (gitignored)
+├── dist/                 # Compiled JavaScript output (generated by `npm run build`)
+│   ├── background.js
+│   ├── content.js
+│   ├── options.js
+│   └── popup.js
 │
-├── manifest.json         # Chrome reads this first — points scripts to dist/
-├── popup.html            # popup markup, loads dist/popup.js
-├── popup.css             # popup styles
-└── tsconfig.json         # TypeScript config, compiles src/ → dist/
+├── manifest.json         # Manifest V3 configuration & permissions
+├── popup.html            # Main popup markup with 50/50 action buttons
+├── popup.css             # Popup UI styles (supports Dark Mode)
+├── options.html          # Dedicated full-page settings & step-by-step setup guide
+├── options.css           # Options page styles
+├── tsconfig.json         # TypeScript compiler configuration
+└── package.json          # Project dependencies & build scripts
 ```
-
-`manifest.json` lives at the root because Chrome requires it there. It references `dist/background.js` as the service worker and `dist/content.js` as the content script. `popup.html` (also at root) loads `dist/popup.js`. You never touch `dist/` directly — just run `npm run build` and it gets regenerated.
 
 ---
 
+## Search Modes & Reddit Policy (2026)
 
-## Notes
+### Public Search Mode (Default)
+For standard users, the extension uses Reddit's native search syndication feeds (`https://www.reddit.com/search.rss`). It requires no API keys, accounts, or approvals.
 
-- Results are cached for 5 minutes so repeated searches on the same page don't hammer the API
-- There's a 1 second rate limit between searches
-- NSFW results are filtered out by default
-- will be tweaking the styles a bit soon, and adding query filtering options soon, along with enabling 15-20 ish queries
+### OAuth API Mode (Optional for Approved Developers)
+Under Reddit's **Responsible Builder Policy**, self-service app creation on `reddit.com/prefs/apps` is restricted for standard accounts. 
+
+If you already have an **approved developer account** or pre-existing Reddit application:
+1. Click **⚙️ Settings & Guide** in the extension to open the options tab.
+2. Enter your **Client ID** and **Client Secret**.
+3. Click **Save & Connect OAuth**. *(Accounts with 2FA enabled do not require a password).*
+4. You can click **Reset to Public Search Feed** at any time to return to zero-config mode.
+
+---
+
+## Keyboard Shortcuts
+
+- <kbd>S</kbd> — Cycle search modes (Selected Text → Page Title → URL Keywords)
+- <kbd>R</kbd> — Refresh current search
+- <kbd>Esc</kbd> — Close popup
+
+---
+
+## License
+
+MIT License. Feel free to use and contribute!

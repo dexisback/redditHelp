@@ -9,124 +9,178 @@ interface RedditPost {
   selftext_preview?: string;
 }
 
-interface StorageData {
+interface PageData {
+  selectedText?: string;
   pageTitle?: string;
+  rawTitle?: string;
   metaDescription?: string;
   pageUrl?: string;
-  selectedText?: string;
 }
 
-let currentSearchMode = "auto";
-let query = "";
+interface SearchModeOption {
+  mode: string;
+  query: string;
+}
+
+let activeQuery = "";
 let currentSort = "relevance";
 let currentTimePeriod = "all";
-let currentData: StorageData = {};
-let storedUrlLocally: string | undefined;
+let availableModes: SearchModeOption[] = [];
+let currentModeIndex = 0;
 
 window.addEventListener("DOMContentLoaded", function () {
   loadingScreen(true);
 
   checkAuthAndProceed();
-  setupSettingsUI();
   setupFilterButtons();
+  setupActionButtons();
+  setupKeyboardShortcuts();
 });
 
 function checkAuthAndProceed(): void {
   chrome.runtime.sendMessage({ action: "checkRedditAuth" }, function (response) {
     if (chrome.runtime.lastError || !response) {
-      loadingScreen(false);
-      showError("Connection error. Reload the extension.");
-      return;
+      console.warn("Could not check Reddit auth, defaulting to public search.");
     }
-
-    if (response.authenticated) {
-      document.getElementById("settings-panel")!.style.display = "none";
-      loadPageData();
-    } else {
-      loadingScreen(false);
-      document.getElementById("settings-panel")!.style.display = "block";
-      showAuthStatus("setup", "Configure your Reddit API credentials to start searching.");
-      prefillCredentials();
-    }
+    loadPageData();
   });
-}
-
-function prefillCredentials(): void {
-  chrome.storage.local.get(
-    ["redditClientId", "redditClientSecret", "redditUsername", "redditPassword"],
-    function (data: { [key: string]: any }) {
-      if (data.redditClientId) (document.getElementById("reddit-client-id") as HTMLInputElement).value = data.redditClientId as string;
-      if (data.redditClientSecret) (document.getElementById("reddit-client-secret") as HTMLInputElement).value = data.redditClientSecret as string;
-      if (data.redditUsername) (document.getElementById("reddit-username") as HTMLInputElement).value = data.redditUsername as string;
-      if (data.redditPassword) (document.getElementById("reddit-password") as HTMLInputElement).value = data.redditPassword as string;
-    },
-  );
 }
 
 function loadPageData(): void {
-  chrome.storage.local.get(
-    ["pageTitle", "metaDescription", "pageUrl", "selectedText"],
-    function (data: StorageData) {
-      if (data.selectedText) {
-        query = data.selectedText;
-        currentSearchMode = "selected text";
-      } else if (data.pageTitle) {
-        query = data.pageTitle;
-        currentSearchMode = "page title";
-      } else {
-        storedUrlLocally = data.pageUrl;
-        query = urlKeywordsExtractor(storedUrlLocally);
-        currentSearchMode = "page URL";
-      }
-
-      updateSearchModeIndicator(query, currentSearchMode);
-      searchReddit();
-    },
-  );
+  chrome.tabs.query({ active: true, currentWindow: true }, function (tabs) {
+    const activeTab = tabs && tabs[0];
+    if (activeTab && activeTab.id) {
+      // Attempt to communicate directly with active tab's content script
+      chrome.tabs.sendMessage(
+        activeTab.id,
+        { action: "getPageInfo" },
+        function (response: PageData | undefined) {
+          if (!chrome.runtime.lastError && response) {
+            processExtractedPageData(response);
+          } else {
+            // Fallback to tab properties and storage
+            chrome.storage.local.get(
+              ["pageTitle", "metaDescription", "pageUrl", "selectedText"],
+              function (storedData: PageData) {
+                const combinedData: PageData = {
+                  selectedText: storedData.selectedText,
+                  pageTitle: storedData.pageTitle || (activeTab.title ? cleanPageTitle(activeTab.title) : ""),
+                  rawTitle: activeTab.title || "",
+                  pageUrl: activeTab.url || storedData.pageUrl || "",
+                };
+                processExtractedPageData(combinedData);
+              },
+            );
+          }
+        },
+      );
+    } else {
+      chrome.storage.local.get(
+        ["pageTitle", "metaDescription", "pageUrl", "selectedText"],
+        function (storedData: PageData) {
+          processExtractedPageData(storedData);
+        },
+      );
+    }
+  });
 }
 
-function setupSettingsUI(): void {
-  document.getElementById("settings-toggle")!.addEventListener("click", function () {
-    let panel = document.getElementById("settings-panel")!;
-    let isOpen = panel.style.display !== "none";
-    panel.style.display = isOpen ? "none" : "block";
-    if (!isOpen) prefillCredentials();
-  });
+function processExtractedPageData(data: PageData): void {
+  availableModes = [];
 
-  document.getElementById("save-credentials")!.addEventListener("click", function () {
-    let clientId = (document.getElementById("reddit-client-id") as HTMLInputElement).value.trim();
-    let clientSecret = (document.getElementById("reddit-client-secret") as HTMLInputElement).value.trim();
-    let username = (document.getElementById("reddit-username") as HTMLInputElement).value.trim();
-    let password = (document.getElementById("reddit-password") as HTMLInputElement).value;
+  const selectedText = data.selectedText ? data.selectedText.trim() : "";
+  const pageTitle = data.pageTitle ? data.pageTitle.trim() : "";
+  const urlKeywords = urlKeywordsExtractor(data.pageUrl);
 
-    if (!clientId || !clientSecret || !username || !password) {
-      showAuthStatus("error", "All fields are required.");
+  if (selectedText) {
+    availableModes.push({ mode: "selected text", query: selectedText });
+  }
+  if (pageTitle) {
+    availableModes.push({ mode: "page title", query: pageTitle });
+  }
+  if (urlKeywords) {
+    availableModes.push({ mode: "page URL", query: urlKeywords });
+  }
+
+  if (availableModes.length === 0) {
+    loadingScreen(false);
+    showEmptyState(true);
+    return;
+  }
+
+  showEmptyState(false);
+  currentModeIndex = 0;
+  applyCurrentSearchMode();
+}
+
+function applyCurrentSearchMode(): void {
+  if (availableModes.length === 0) return;
+
+  const currentOption = availableModes[currentModeIndex % availableModes.length];
+  activeQuery = currentOption.query;
+
+  updateSearchModeIndicator(activeQuery, currentOption.mode);
+
+  const switchBtn = document.getElementById("switch-mode");
+  if (switchBtn) {
+    if (availableModes.length > 1) {
+      const nextIndex = (currentModeIndex + 1) % availableModes.length;
+      const nextMode = availableModes[nextIndex].mode;
+      switchBtn.textContent = `🔄 Mode (${nextMode})`;
+      switchBtn.style.display = "flex";
+    } else {
+      switchBtn.textContent = `🔄 Refresh`;
+      switchBtn.style.display = "flex";
+    }
+  }
+
+  searchReddit();
+}
+
+function setupActionButtons(): void {
+  const switchBtn = document.getElementById("switch-mode");
+  if (switchBtn) {
+    switchBtn.addEventListener("click", function () {
+      if (availableModes.length > 1) {
+        currentModeIndex = (currentModeIndex + 1) % availableModes.length;
+        applyCurrentSearchMode();
+      } else {
+        searchReddit();
+      }
+    });
+  }
+
+  const settingsBtn = document.getElementById("open-settings");
+  if (settingsBtn) {
+    settingsBtn.addEventListener("click", function () {
+      if (chrome.runtime.openOptionsPage) {
+        chrome.runtime.openOptionsPage();
+      } else {
+        window.open(chrome.runtime.getURL("options.html"), "_blank");
+      }
+    });
+  }
+}
+
+function setupKeyboardShortcuts(): void {
+  document.addEventListener("keydown", function (e: KeyboardEvent) {
+    const target = e.target as HTMLElement | null;
+    if (target && (target.tagName === "INPUT" || target.tagName === "TEXTAREA")) {
       return;
     }
 
-    showAuthStatus("saving", "Testing credentials...");
-
-    chrome.runtime.sendMessage(
-      {
-        action: "saveRedditCredentials",
-        credentials: { clientId, clientSecret, username, password },
-      },
-      function (response) {
-        if (chrome.runtime.lastError || !response) {
-          showAuthStatus("error", "Connection error. Try again.");
-          return;
-        }
-        if (response.success) {
-          showAuthStatus("success", "Connected! Searching Reddit...");
-          setTimeout(function () {
-            document.getElementById("settings-panel")!.style.display = "none";
-            loadPageData();
-          }, 800);
-        } else {
-          showAuthStatus("error", response.error || "Authentication failed. Check credentials.");
-        }
-      },
-    );
+    if (e.key === "r" || e.key === "R") {
+      e.preventDefault();
+      searchReddit();
+    } else if (e.key === "s" || e.key === "S") {
+      e.preventDefault();
+      if (availableModes.length > 1) {
+        currentModeIndex = (currentModeIndex + 1) % availableModes.length;
+        applyCurrentSearchMode();
+      } else {
+        searchReddit();
+      }
+    }
   });
 }
 
@@ -142,9 +196,10 @@ function setupFilterButtons(): void {
           .forEach((b) => b.classList.remove("active"));
         btn.classList.add("active");
 
-        let timeFilter = document.getElementById("time-filter");
-        if (timeFilter)
+        const timeFilter = document.getElementById("time-filter");
+        if (timeFilter) {
           timeFilter.style.display = currentSort === "top" ? "flex" : "none";
+        }
 
         if (currentSort !== "top") currentTimePeriod = "all";
 
@@ -168,28 +223,22 @@ function setupFilterButtons(): void {
     });
 }
 
-function showAuthStatus(type: string, message: string): void {
-  let statusEl = document.getElementById("auth-status")!;
-  statusEl.style.display = "block";
-  statusEl.className = "auth-status " + type;
-  statusEl.textContent = message;
-}
-
 function searchReddit(): void {
-  if (!query) {
+  if (!activeQuery) {
     loadingScreen(false);
-    showError("No search query available. Try selecting some text on the page.");
+    showError("No search query available. Try selecting text on the page.");
     return;
   }
 
   clearResults();
   hideError();
+  showEmptyState(false);
   loadingScreen(true);
 
   chrome.runtime.sendMessage(
     {
       action: "amaan_ka_sandesh_for_background_script",
-      query: query.trim(),
+      query: activeQuery.trim(),
       limit: 20,
       sortBy: currentSort,
       timePeriod: currentTimePeriod,
@@ -202,7 +251,7 @@ function searchReddit(): void {
       loadingScreen(false);
 
       if (chrome.runtime.lastError) {
-        showError("Connection error. Please try again.");
+        showError("Connection error with background service worker.");
         return;
       }
 
@@ -217,64 +266,106 @@ function searchReddit(): void {
   );
 }
 
+function cleanPageTitle(title: string): string {
+  if (!title) return "";
+  const commonStopWords = [
+    "i", "me", "my", "we", "our", "you", "your", "he", "she", "it", "they",
+    "what", "which", "who", "whom", "this", "that", "these", "those",
+    "am", "is", "are", "was", "were", "be", "been", "being", "have", "has", "had",
+    "do", "does", "did", "a", "an", "the", "and", "but", "if", "or", "because",
+    "as", "until", "while", "of", "at", "by", "for", "with", "about", "against",
+    "between", "into", "through", "during", "before", "after", "above", "below",
+    "to", "from", "up", "down", "in", "out", "on", "off", "over", "under", "again",
+  ];
+
+  const cleaned = title
+    .replace(/[^\w\s-]/gi, " ")
+    .replace(/\s+/g, " ")
+    .toLowerCase()
+    .trim();
+
+  return cleaned
+    .split(" ")
+    .filter((w) => w.length > 2 && !commonStopWords.includes(w))
+    .slice(0, 6)
+    .join(" ");
+}
+
 function urlKeywordsExtractor(url: string | undefined): string {
-  if (!url) return "general discussion";
+  if (!url) return "";
 
   try {
-    let urlObj = new URL(url);
-    let pathParts = urlObj.pathname
+    const urlObj = new URL(url);
+    const pathParts = urlObj.pathname
       .split("/")
       .filter((part) => part.length > 2)
       .map((part) => part.replace(/[-_]/g, " "))
       .slice(0, 7);
 
-    if (pathParts.length === 0) return urlObj.hostname.replace(/^www\./, "");
+    if (pathParts.length === 0) {
+      return urlObj.hostname.replace(/^www\./, "");
+    }
     return pathParts.join(" ");
   } catch {
-    return "general discussion";
+    return "";
   }
 }
 
 function updateSearchModeIndicator(q: string, mode: string): void {
-  let searchModeDiv = document.getElementById("search-mode");
+  const searchModeDiv = document.getElementById("search-mode");
   if (searchModeDiv) {
-    let searchInfo = searchModeDiv.querySelector<HTMLElement>(".search-info");
-    if (searchInfo)
-      searchInfo.innerHTML = `<strong>Searching by ${mode}:</strong> <span class="query">"${q}"</span>`;
+    const searchInfo = searchModeDiv.querySelector<HTMLElement>(".search-info");
+    if (searchInfo) {
+      searchInfo.innerHTML = `<strong>Searching by ${mode}:</strong> <span class="query" title="${escapeHtml(q)}">"${escapeHtml(q)}"</span>`;
+    }
   }
 }
 
+function escapeHtml(str: string): string {
+  return str
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;")
+    .replace(/'/g, "&#039;");
+}
+
 function showFilterBar(): void {
-  let filterBar = document.getElementById("filter-bar");
+  const filterBar = document.getElementById("filter-bar");
   if (filterBar) filterBar.style.display = "flex";
 }
 
 function loadingScreen(show: boolean): void {
-  let loadingDiv = document.getElementById("loading");
+  const loadingDiv = document.getElementById("loading");
   if (loadingDiv) loadingDiv.style.display = show ? "flex" : "none";
 }
 
 function showError(message: string): void {
-  let errorDiv = document.getElementById("error");
+  const errorDiv = document.getElementById("error");
   if (errorDiv) {
-    let msgEl = errorDiv.querySelector(".error-message");
+    const msgEl = errorDiv.querySelector(".error-message");
     if (msgEl) msgEl.textContent = message;
     errorDiv.style.display = "flex";
   }
 }
 
 function hideError(): void {
-  let errorDiv = document.getElementById("error");
+  const errorDiv = document.getElementById("error");
   if (errorDiv) errorDiv.style.display = "none";
 }
 
+function showEmptyState(show: boolean): void {
+  const emptyDiv = document.getElementById("empty-state");
+  if (emptyDiv) emptyDiv.style.display = show ? "flex" : "none";
+}
+
 function clearResults(): void {
-  let resultsDiv = document.getElementById("results");
+  const resultsDiv = document.getElementById("results");
   if (resultsDiv) resultsDiv.innerHTML = "";
 }
 
 function displayResults(redditPosts: RedditPost[]): void {
-  let resultsDiv = document.getElementById("results");
+  const resultsDiv = document.getElementById("results");
   if (!resultsDiv) return;
   resultsDiv.innerHTML = "";
 
@@ -283,7 +374,7 @@ function displayResults(redditPosts: RedditPost[]): void {
     return;
   }
 
-  let postsContainer = document.createElement("div");
+  const postsContainer = document.createElement("div");
   postsContainer.className = "posts-container";
 
   redditPosts.forEach(function (post) {
@@ -292,56 +383,67 @@ function displayResults(redditPosts: RedditPost[]): void {
 
   resultsDiv.appendChild(postsContainer);
 
-  let countDiv = document.createElement("div");
+  const countDiv = document.createElement("div");
   countDiv.className = "results-count";
   countDiv.textContent = `Found ${redditPosts.length} discussions`;
   resultsDiv.insertBefore(countDiv, postsContainer);
 }
 
 function createPostElement(post: RedditPost): HTMLDivElement {
-  let div = document.createElement("div");
+  const div = document.createElement("div");
   div.className = "reddit-post";
 
-  let scoreText = formatScore(post.score);
-  let timeText = formatTime(post.created_utc);
-  let displayTitle =
-    post.title.length > 80 ? post.title.substring(0, 80) + "..." : post.title;
+  const timeText = formatTime(post.created_utc);
+  const displayTitle =
+    post.title.length > 90 ? post.title.substring(0, 90) + "..." : post.title;
+
+  const metaParts: string[] = [
+    `<span class="subreddit">r/${escapeHtml(post.subreddit)}</span>`,
+  ];
+
+  if (post.score > 0) {
+    metaParts.push(`<span class="score">${formatScore(post.score)} upvotes</span>`);
+  }
+
+  metaParts.push(`<span class="time">${timeText}</span>`);
+
+  if (post.num_comments > 0) {
+    metaParts.push(`<span class="comments">${post.num_comments} comments</span>`);
+  }
+
+  const metaHtml = metaParts.join('<span class="separator">•</span>');
 
   div.innerHTML = `
     <div class="post-header">
       <h3 class="post-title">
-        <a href="${post.url}" target="_blank" title="${post.title}">
-          ${displayTitle}
+        <a href="${post.url}" target="_blank" rel="noopener noreferrer" title="${escapeHtml(post.title)}">
+          ${escapeHtml(displayTitle)}
         </a>
       </h3>
     </div>
 
     <div class="post-meta">
-      <span class="subreddit">r/${post.subreddit}</span>
-      <span class="separator">•</span>
-      <span class="score">${scoreText} upvotes</span>
-      <span class="separator">•</span>
-      <span class="time">${timeText}</span>
-      <span class="separator">•</span>
-      <span class="comments">${post.num_comments} comments</span>
+      ${metaHtml}
     </div>
 
     ${
       post.selftext_preview
-        ? `<p class="post-preview">${post.selftext_preview}</p>`
-        : `<p class="post-preview">Click to read discussion</p>`
+        ? `<p class="post-preview">${escapeHtml(post.selftext_preview)}</p>`
+        : `<p class="post-preview">Click to view discussion</p>`
     }
   `;
 
   div.addEventListener("click", function (e) {
-    if ((e.target as HTMLElement).tagName !== "A")
+    if ((e.target as HTMLElement).tagName !== "A") {
       window.open(post.url, "_blank");
+    }
   });
 
   return div;
 }
 
 function formatScore(score: number): string {
+  if (score >= 1000000) return (score / 1000000).toFixed(1) + "M";
   if (score >= 10000) return Math.floor(score / 1000) + "k";
   if (score >= 1000) return (score / 1000).toFixed(1) + "k";
   return score.toString();
@@ -350,9 +452,10 @@ function formatScore(score: number): string {
 function formatTime(timestamp: number): string {
   if (!timestamp) return "unknown";
 
-  let now = Date.now() / 1000;
-  let diff = now - timestamp;
+  const now = Date.now() / 1000;
+  const diff = now - timestamp;
 
+  if (diff < 60) return "just now";
   if (diff < 3600) return `${Math.floor(diff / 60)}m ago`;
   if (diff < 86400) return `${Math.floor(diff / 3600)}h ago`;
   if (diff < 2592000) return `${Math.floor(diff / 86400)}d ago`;
